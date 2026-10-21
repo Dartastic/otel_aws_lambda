@@ -1,11 +1,12 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_aws_lambda_suppression.dart';
 
 class AwsLambdaResult {
+  /// Creates a result.
   const AwsLambdaResult({
     this.functionName,
     this.functionArn,
@@ -43,8 +44,13 @@ class AwsLambdaResult {
   final String? errorMessage;
 }
 
+/// What a traced call returned: the value for the caller plus fields
+/// recorded on the span.
 class AwsLambdaCallResult<T> {
+  /// Creates a call result.
   const AwsLambdaCallResult({required this.value, this.result});
+
+  /// The value returned to the caller.
   final T value;
   final AwsLambdaResult? result;
 }
@@ -52,103 +58,105 @@ class AwsLambdaCallResult<T> {
 Future<T> tracedAwsLambda<T>({
   required String operation,
   required Future<AwsLambdaCallResult<T>> Function() invoke,
-  Tracer? tracer,
+  APITracer? tracer,
 }) async {
   if (awsLambdaInstrumentationSuppressed()) {
     final r = await invoke();
     return r.value;
   }
-  final t = tracer ?? OTel.tracerProvider().getTracer('otel_aws_lambda');
+  final t = tracer ?? OTelAPI.tracerProvider().getTracer('otel_aws_lambda');
   final span = t.startSpan('lambda $operation', kind: SpanKind.client);
   try {
-    span.addAttributes(OTel.attributes(
-        [OTel.attributeString('faas.invoked_provider', 'aws')]));
+    span.addAttributes(OTelAPI.attributes(
+        [OTelAPI.attributeString('faas.invoked_provider', 'aws')]));
     span.addAttributes(
-        OTel.attributes([OTel.attributeString('rpc.system', 'aws-api')]));
+        OTelAPI.attributes([OTelAPI.attributeString('rpc.system', 'aws-api')]));
     span.addAttributes(
-        OTel.attributes([OTel.attributeString('rpc.service', 'Lambda')]));
+        OTelAPI.attributes([OTelAPI.attributeString('rpc.service', 'Lambda')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.functionName != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('faas.invoked_name', res.functionName!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('faas.invoked_name', res.functionName!)]));
       }
       if (res.functionArn != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString('aws.lambda.function_arn', res.functionArn!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('aws.lambda.function_arn', res.functionArn!)
         ]));
       }
       if (res.version != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('faas.invoked_version', res.version!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('faas.invoked_version', res.version!)]));
       }
       if (res.aliasName != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('aws.lambda.alias', res.aliasName!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('aws.lambda.alias', res.aliasName!)]));
       }
       if (res.invocationType != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
             'aws.lambda.invocation_type',
             res.invocationType!,
           )
         ]));
       }
       if (res.executedVersion != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
             'aws.lambda.executed_version',
             res.executedVersion!,
           )
         ]));
       }
       if (res.requestId != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('aws.request_id', res.requestId!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('aws.request_id', res.requestId!)]));
       }
       if (res.durationMs != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeDouble('faas.duration', res.durationMs!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeDouble('faas.duration', res.durationMs!)]));
       }
       if (res.billedDurationMs != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeDouble(
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeDouble(
             'aws.lambda.billed_duration',
             res.billedDurationMs!,
           )
         ]));
       }
       if (res.memoryLimitMb != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('faas.max_memory', res.memoryLimitMb!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeInt('faas.max_memory', res.memoryLimitMb!)]));
       }
       if (res.memoryUsedMb != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('aws.lambda.memory_used', res.memoryUsedMb!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('aws.lambda.memory_used', res.memoryUsedMb!)
+        ]));
       }
       if (res.coldStart != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeBool('faas.coldstart', res.coldStart!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeBool('faas.coldstart', res.coldStart!)]));
       }
       if (res.region != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('cloud.region', res.region!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('cloud.region', res.region!)]));
       }
       if (res.statusCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('http.response.status_code', res.statusCode!)
+        ]));
       }
       if (res.errorCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('lambda.error.code', res.errorCode!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('lambda.error.code', res.errorCode!)]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
-            ErrorResource.errorType.key,
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+            ErrorAttributes.errorType.key,
             res.errorCode ?? 'lambda.error',
           )
         ]));
